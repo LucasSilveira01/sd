@@ -23,7 +23,7 @@ subprocess.call(
 
 subprocess.call(
     ['pip', 'install', 'requests'], shell=True)
-server_address = ('172.21.11.45', 9999)
+server_address = ('192.168.0.189', 9999)
 from Bio.PDB import PDBParser, PDBIO, Superimposer
 import mysql.connector
 import requests
@@ -157,7 +157,7 @@ def get_protein_ids_from_db():
 
 
 def connect_to_server(i):
-    target_host = "172.21.11.45"  # Substitua pelo IP do servidor
+    target_host = "192.168.0.189"  # Substitua pelo IP do servidor
     target_port = 9999
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((target_host, target_port))
@@ -203,7 +203,7 @@ def connect_to_server(i):
     lista_arquivos = os.listdir('relatorios')
     quantidade_arquivos = len(lista_arquivos)
     print(quantidade_arquivos)
-    if(quantidade_arquivos == 20):
+    if(quantidade_arquivos % 20 == 0):
         os.remove(state_file)
 def superimposer(protein):
     url = f"https://files.rcsb.org/download/{protein}.pdb"
@@ -260,7 +260,7 @@ def superimposer(protein):
             io.save(output_pdb_filename)
 
             print(f"Proteínas superpostas e salvas em {output_pdb_filename}")
-            with socket.create_connection(('172.21.11.45', 9999)) as client_socket:
+            with socket.create_connection(('192.168.0.189', 9999)) as client_socket:
                 # Envie a flag indicando que um arquivo será enviado
                 client_socket.sendall(b'file')
                 # Envie o nome do arquivo
