@@ -13,9 +13,9 @@ DROP TABLE IF EXISTS `proteins`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `proteins` (
-  `id` int(10) NOT NULL AUTO_INCREMENT,
-  `nome` text NOT NULL,
-  `cod_id` varchar(10) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nome` text COLLATE utf8mb4_general_ci NOT NULL,
+  `cod_id` varchar(10) COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=396 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
