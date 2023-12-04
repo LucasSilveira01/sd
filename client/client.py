@@ -159,46 +159,45 @@ def superimposer(protein):
 
             print(f"Proteínas superpostas e salvas em {output_pdb_filename}")
             escrever_no_log(f"Proteínas superpostas e salvas em {output_pdb_filename}")
-            # Criacao do soquete
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # Configuracao do contexto SSL
-            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=ca_cert)
-            # Configuracao do contexto SSL com verificacao de certificado desativada
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            # Conectar-se ao servidor
-            ssl_socket = ssl_context.wrap_socket(client_socket)
-            try:
-                ssl_socket.connect((HOST, PORT))
-                print('Conexão com servidor principal estabelecida!')
-            except ConnectionRefusedError:
-                print(f"Não foi possível conectar ao servidor principal. Tentando o servidor secundário na porta {PORT + 1}")
-                ssl_socket.connect((HOST_REPL, PORT_REPL))
-                print('Conexão com servidor secundário estabelecida!')
-            escrever_no_log('Conectado ao servidor para enviar arquivo')
-
-            # Envie a flag indicando que um arquivo será enviado
-            ssl_socket.sendall(b'file')
-            escrever_no_log('Flag File enviada com sucesso!')
-            # Envie o nome do arquivo
-            ssl_socket.sendall(f"{output_pdb_filename}\n".encode())
-
-            # Envie os dados do arquivo
-            with open(output_pdb_filename, 'rb') as file:
-                while True:
-                    data = file.read(1024)
-                    if not data:
-                        break
-                    ssl_socket.sendall(data)
-            print(f"Arquivo {output_pdb_filename} enviado com sucesso.")
-            escrever_no_log(f"Arquivo {output_pdb_filename} enviado com sucesso.")
+           
         with open(state_file, 'w') as f:
             print(state)
             json.dump(state, f)
         escrever_no_log('State File atualizado com sucesso!')
-        ssl_socket.close()
-        escrever_no_log('Conexao com o servidor fechada!')
     start_index = 0
+def send_files():
+     # Criacao do soquete
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Configuracao do contexto SSL
+    ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=ca_cert)
+    # Configuracao do contexto SSL com verificacao de certificado desativada
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    # Conectar-se ao servidor
+    ssl_socket = ssl_context.wrap_socket(client_socket)
+    try:
+        ssl_socket.connect((HOST, PORT))
+        print('Conexão com servidor principal estabelecida!')
+    except ConnectionRefusedError:
+        print(f"Não foi possível conectar ao servidor principal. Tentando o servidor secundário na porta {PORT + 1}")
+        ssl_socket.connect((HOST_REPL, PORT_REPL))
+        print('Conexão com servidor secundário estabelecida!')
+    escrever_no_log('Conectado ao servidor para enviar arquivo')
+
+    # Envie a flag indicando que um arquivo será enviado
+    ssl_socket.sendall(b'file')
+    escrever_no_log('Flag File enviada com sucesso!')
+    diretorio = 'relatorios'
+    arquivos = os.listdir('relatorios')
+    arquivos_str = "\n".join(arquivos)
+    ssl_socket.send(arquivos_str.encode())
+    for arquivo in arquivos:
+        with open(os.path.join(diretorio, arquivo), 'rb') as file:
+            dados = file.read(1024)
+            while dados:
+                client_socket.send(dados)
+                dados = file.read(1024)
+    ssl_socket.close()
 def extract_last_range_from_log(logfile):
     with open(logfile, 'r') as f:
         log_content = f.read()
@@ -335,6 +334,7 @@ def connect_to_server(i):
         executor.map(superimposer, proteins_ids) """
     for protein in proteins_ids:
         superimposer(protein)
+    send_files()
     lista_arquivos = os.listdir('relatorios')
     quantidade_arquivos = len(lista_arquivos)
     if(quantidade_arquivos % 20 == 0):

@@ -11,7 +11,7 @@ subprocess.call(
 # Configuracões do servidor
 HOST = '0.0.0.0'
 PORT = 12345
-HOST_REPL = 'localhost'
+HOST_REPL = '172.16.127.135'
 PORT_REPL = 12346
 CERTIFICATE_FILE = 'server-cert.pem'  # Certificado do servidor
 PRIVATE_KEY_FILE = 'server-key.pem'  # Chave privada do servidor
@@ -161,7 +161,7 @@ while True:
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients))
         client_handler.start()
     elif('file' in message):
-        escrever_no_log('Flag File recebida!')
+        """ escrever_no_log('Flag File recebida!')
 
         file_name = ssl_socket.recv(35).decode().strip()
         print('filename: ', file_name)
@@ -177,7 +177,16 @@ while True:
                 file.write(data)
 
         print(f"Arquivo {file_name} recebido com sucesso.")
-        escrever_no_log(f'Arquivo {file_name} recebido com sucesso')
+        escrever_no_log(f'Arquivo {file_name} recebido com sucesso') """
+        arquivos_str = ssl_socket.recv(1024).decode()
+        arquivos = arquivos_str.split("\n")
+        diretorio_destino = "relatorios"
+        for arquivo in arquivos:
+            with open(os.path.join(diretorio_destino, arquivo), 'wb') as file:
+                dados = client_socket.recv(1024)
+                while dados:
+                    file.write(dados)
+                    dados = client_socket.recv(1024)
     elif('FaTo' in message):
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients))
         client_handler.start()
