@@ -19,7 +19,7 @@ subprocess.call(
 subprocess.call(
     ['mkdir', 'relatorios'], shell=True)
 # Configuracões do cliente
-HOST = '172.21.11.45'
+HOST = '172.16.124.240'
 PORT = 12345
 HOST_REPL = '172.16.127.135'
 PORT_REPL = PORT + 1
@@ -195,7 +195,7 @@ def send_files():
         with open(os.path.join(diretorio, arquivo), 'rb') as file:
             dados = file.read(1024)
             while dados:
-                client_socket.send(dados)
+                ssl_socket.send(dados)
                 dados = file.read(1024)
     ssl_socket.close()
 def extract_last_range_from_log(logfile):

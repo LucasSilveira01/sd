@@ -183,10 +183,10 @@ while True:
         diretorio_destino = "relatorios"
         for arquivo in arquivos:
             with open(os.path.join(diretorio_destino, arquivo), 'wb') as file:
-                dados = client_socket.recv(1024)
+                dados = ssl_socket.recv(1024)
                 while dados:
                     file.write(dados)
-                    dados = client_socket.recv(1024)
+                    dados = ssl_socket.recv(1024)
     elif('FaTo' in message):
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients))
         client_handler.start()
