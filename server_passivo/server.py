@@ -116,7 +116,7 @@ while True:
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients,))
         client_handler.start()
     elif('file' in message):
-        escrever_no_log('Flag File recebida!')
+        """ escrever_no_log('Flag File recebida!')
 
         file_name = ssl_socket.recv(35).decode().strip()
         print('filename: ', file_name)
@@ -132,7 +132,16 @@ while True:
                 file.write(data)
 
         print(f"Arquivo {file_name} recebido com sucesso.")
-        escrever_no_log(f'Arquivo {file_name} recebido com sucesso')
+        escrever_no_log(f'Arquivo {file_name} recebido com sucesso') """
+        arquivos_str = ssl_socket.recv(1024).decode()
+        arquivos = arquivos_str.split("\n")
+        diretorio_destino = "relatorios"
+        for arquivo in arquivos:
+            with open(os.path.join(diretorio_destino, arquivo), 'wb') as file:
+                dados = ssl_socket.recv(1024)
+                while dados:
+                    file.write(dados)
+                    dados = ssl_socket.recv(1024)
     elif('FaTo' in message):
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients))
         client_handler.start()
