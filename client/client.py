@@ -21,6 +21,8 @@ subprocess.call(
 # Configuracões do cliente
 HOST = '172.21.11.45'
 PORT = 12345
+HOST_REPL = '172.16.127.135'
+PORT_REPL = PORT + 1
 ca_cert = 'client-cert.pem'
 state_file = 'state.json'
 # Configurar as informacões de conexao
@@ -50,7 +52,6 @@ else:
 
 pdb_directory = "arquivos"
 start_index = last_processed_index if last_processed_index is not None else 0
-parser = PDBParser(QUIET=True)
 pdb_directory = "arquivos"
 # Funcao para escrever no arquivo de log
 def escrever_no_log(mensagem, nome_arquivo='logfile.txt'):
@@ -95,6 +96,8 @@ def get_protein_ids_from_db():
 
 def superimposer(protein):
     global start_index
+    parser = PDBParser(QUIET=True)
+
     if(not os.path.exists(f'referencias/{protein}.pdb')):
         url = f"https://files.rcsb.org/download/{protein}.pdb"
         local_filename = f"referencias/{protein}.pdb"
@@ -164,8 +167,14 @@ def superimposer(protein):
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
             # Conectar-se ao servidor
-            ssl_socket = ssl_context.wrap_socket(client_socket, server_hostname=HOST)
-            ssl_socket.connect((HOST, PORT))
+            ssl_socket = ssl_context.wrap_socket(client_socket)
+            try:
+                ssl_socket.connect((HOST, PORT))
+                print('Conexão com servidor principal estabelecida!')
+            except ConnectionRefusedError:
+                print(f"Não foi possível conectar ao servidor principal. Tentando o servidor secundário na porta {PORT + 1}")
+                ssl_socket.connect((HOST_REPL, PORT_REPL))
+                print('Conexão com servidor secundário estabelecida!')
             escrever_no_log('Conectado ao servidor para enviar arquivo')
 
             # Envie a flag indicando que um arquivo será enviado
@@ -225,7 +234,7 @@ def connect_to_server(i):
     if(last_processed_index == None):
         current_range = extract_last_range_from_log('logfile.txt')
         range_done = extract_range_done_from_log('logfile.txt')
-
+        print(current_range, range_done)
         # Criacao do soquete
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Configuracao do contexto SSL
@@ -234,11 +243,16 @@ def connect_to_server(i):
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
         # Conectar-se ao servidor
-        ssl_socket = ssl_context.wrap_socket(client_socket, server_hostname=HOST)
-        ssl_socket.connect((HOST, PORT))
+        ssl_socket = ssl_context.wrap_socket(client_socket)
+        try:
+            ssl_socket.connect((HOST, PORT))
+            print('Conexão com servidor principal estabelecida!')
+        except ConnectionRefusedError:
+            print(f"Não foi possível conectar ao servidor principal. Tentando o servidor secundário na porta {PORT + 1}")
+            ssl_socket.connect((HOST_REPL, PORT_REPL))
+            print('Conexão com servidor secundário estabelecida!')
         escrever_no_log('Conectado ao servidor')
-        if not current_range or current_range[0] == range_done[0] and current_range[1] == range_done[1]:
-            
+        if(current_range is None):
             ssl_socket.send(f"Initiating".encode())
             escrever_no_log('Flag Init enviado!')
 
@@ -249,13 +263,30 @@ def connect_to_server(i):
             escrever_no_log(f'Range atual: {range}')
             sql = f'SELECT * FROM sd_repl.proteins where id between {split[0]} and {split[1]}'
         else:
-            print(f'Range Atual recuperado: {current_range[0]} - {current_range[1]}')
-            sql = f'SELECT * FROM sd_repl.proteins where id between {current_range[0]} and {current_range[1]}'
-            ssl_socket.send(f"FaTo".encode())
+            if range_done is not None:
+                if current_range[0] == range_done[0] and current_range[1] == range_done[1]:
+                
+                    ssl_socket.send(f"Initiating".encode())
+                    escrever_no_log('Flag Init enviado!')
 
+                    response = ssl_socket.recv(1024)
+                    range = (response.decode())
+                    split = range.split('-')
+                    print(split[0], split[1])
+                    escrever_no_log(f'Range atual: {range}')
+                    sql = f'SELECT * FROM sd_repl.proteins where id between {split[0]} and {split[1]}'
+                else:
+                    print(f'Range Atual recuperado: {current_range[0]} - {current_range[1]}')
+                    sql = f'SELECT * FROM sd_repl.proteins where id between {current_range[0]} and {current_range[1]}'
+                    ssl_socket.send(f"FaTo".encode())
+            else:
+                print(f'Range Atual recuperado: {current_range[0]} - {current_range[1]}')
+                sql = f'SELECT * FROM sd_repl.proteins where id between {current_range[0]} and {current_range[1]}'
+                ssl_socket.send(f"FaTo".encode())
+
+        receive_mysql_dump_from_server(ssl_socket)
         # Réplica do banco de dados MySQL no cliente
         if(i==0):
-            receive_mysql_dump_from_server(ssl_socket)
             replicate_mysql_to_client(ssl_socket)
         ssl_socket.close()
         escrever_no_log('Conexao com o servidor fechada!')
@@ -300,8 +331,10 @@ def connect_to_server(i):
     # Wait for all threads to finish
     for thread in threads:
         thread.join() """
-    with ThreadPoolExecutor() as executor:
-        executor.map(superimposer, proteins_ids)
+    """ with ThreadPoolExecutor() as executor:
+        executor.map(superimposer, proteins_ids) """
+    for protein in proteins_ids:
+        superimposer(protein)
     lista_arquivos = os.listdir('relatorios')
     quantidade_arquivos = len(lista_arquivos)
     if(quantidade_arquivos % 20 == 0):
