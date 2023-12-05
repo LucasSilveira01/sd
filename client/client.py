@@ -19,9 +19,9 @@ subprocess.call(
 subprocess.call(
     ['mkdir', 'relatorios'], shell=True)
 # Configuracões do cliente
-HOST = '172.16.124.240'
+HOST = 'localhost'
 PORT = 12345
-HOST_REPL = '172.16.127.135'
+HOST_REPL = 'localhost'
 PORT_REPL = PORT + 1
 ca_cert = 'client-cert.pem'
 state_file = 'state.json'

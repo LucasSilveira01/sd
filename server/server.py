@@ -11,7 +11,7 @@ subprocess.call(
 # Configuracões do servidor
 HOST = '0.0.0.0'
 PORT = 12345
-HOST_REPL = '172.16.127.135'
+HOST_REPL = 'localhost'
 PORT_REPL = 12346
 CERTIFICATE_FILE = 'server-cert.pem'  # Certificado do servidor
 PRIVATE_KEY_FILE = 'server-key.pem'  # Chave privada do servidor
@@ -105,14 +105,12 @@ def replicate_logfile():
     # Conectar-se ao servidor
     ssl_socket = ssl_context.wrap_socket(client_socket, server_hostname=HOST_REPL)
     ssl_socket.connect((HOST_REPL, PORT_REPL))
-    ssl_socket.sendall(b'Repl')
-    with open('logfile.txt', "rb") as file:
-            while True:
-                data = file.read(1024)
-                if not data:
-                    break
-                ssl_socket.sendall(data)
-    ssl_socket.sendall(b'Finalizado')
+    ssl_socket.sendall('Repl'.encode())
+    with open('logfile.txt', 'rb') as file:
+            dados = file.read(1024)
+            while dados:
+                ssl_socket.send(dados)
+                dados = file.read(1024)
     ssl_socket.close()
 
 """ def replicate_reports():
@@ -149,7 +147,6 @@ while True:
     clients = extrair_clientes_do_log()
     # Aceita a conexao do cliente
     client_socket, client_address = server_socket.accept()
-    
     # Adiciona a camada SSL/TLS ao soquete
     ssl_socket = ssl_context.wrap_socket(client_socket, server_side=True)
     escrever_no_log(f'Conexao aceita de {client_address}')
@@ -161,7 +158,8 @@ while True:
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients))
         client_handler.start()
     elif('file' in message):
-        """ escrever_no_log('Flag File recebida!')
+        escrever_no_log('Flag File recebida!')
+        """
 
         file_name = ssl_socket.recv(35).decode().strip()
         print('filename: ', file_name)
@@ -177,7 +175,7 @@ while True:
                 file.write(data)
 
         print(f"Arquivo {file_name} recebido com sucesso.")
-        escrever_no_log(f'Arquivo {file_name} recebido com sucesso') """
+        """
         arquivos_str = ssl_socket.recv(1024).decode()
         arquivos = arquivos_str.split("\n")
         diretorio_destino = "relatorios"
@@ -187,6 +185,7 @@ while True:
                 while dados:
                     file.write(dados)
                     dados = ssl_socket.recv(1024)
+            escrever_no_log(f'Arquivo {arquivo} recebido com sucesso')
     elif('FaTo' in message):
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients))
         client_handler.start()
@@ -198,6 +197,6 @@ while True:
                     file.write(data.replace(b"Finalizado", b""))
                     break
                 file.write(data)
-    replicate_logfile_handler = threading.Thread(target=replicate_logfile)
-    replicate_logfile_handler.start()
+    replicate_logfile()
+    
     #replicate_logfile_handler.join()

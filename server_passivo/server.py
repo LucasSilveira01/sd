@@ -92,12 +92,12 @@ def extrair_clientes_do_log(nome_arquivo='logfile.txt'):
     return clients
 def receive_lofgile(ssl_socket):
     with open('logfile.txt', 'wb') as file:
-        while True:
-            data = ssl_socket.recv(1024)
-            if b"Finalizado" in data:
-                file.write(data.replace(b"Finalizado", b""))
+        dados = ssl_socket.recv(1024)
+        while dados:
+            if dados == '':
                 break
-            file.write(data)
+            file.write(dados)
+            dados = ssl_socket.recv(1024)
 # Exemplo de uso para extrair clientes do arquivo de log
 while True:
     clients = extrair_clientes_do_log()
@@ -108,7 +108,7 @@ while True:
     ssl_socket = ssl_context.wrap_socket(client_socket, server_side=True)
     escrever_no_log(f'Conexao aceita de {client_address}')
     response = ssl_socket.recv(4)
-    message = response.decode().strip()
+    message = response.decode()
     print(message)
     if(message == 'Init'):
         escrever_no_log('Flag Init recebida!')
@@ -146,8 +146,9 @@ while True:
         client_handler = threading.Thread(target=handle_client, args=(ssl_socket,client_address,message,clients))
         client_handler.start()
     elif('Repl' in message):
-       receive_lofgile_handler = threading.Thread(target=receive_lofgile, args=(ssl_socket,))
-       receive_lofgile_handler.start()
+       """ receive_lofgile_handler = threading.Thread(target=receive_lofgile, args=(ssl_socket,))
+       receive_lofgile_handler.start() """
+       receive_lofgile(ssl_socket)
     elif('ReFi' in message):
         file_name = ssl_socket.recv(35).decode().strip()
         # Salve o arquivo no servidor
